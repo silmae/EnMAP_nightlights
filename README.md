@@ -14,10 +14,10 @@ The code also contains functions to:
  * use matched filtering with the lighting spectra as targets and plot the resulting maps
  * calculate and plot maps of the luminous efficiency of radiation and the spectral G index
 
-## Depencies
+## Dependencies
 Install the EnPT Python package according to the instructions provided at: https://enmap.git-pages.gfz-potsdam.de/GFZ_Tools_EnMAP_BOX/EnPT/doc/installation.html
 
-This package and its depencies should contain everything you need to run the code in this repository. 
+This package and its dependencies should contain everything you need to run the code in this repository. 
 
 EnMAP data is freely available to registered users from the portal at: https://planning.enmap.org/
 
