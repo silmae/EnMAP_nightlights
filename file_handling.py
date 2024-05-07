@@ -238,6 +238,7 @@ def load_EnMAP_data_with_envi(folder_path, type=None, indices_x=None, indices_y=
 
     # Replace the possibly erroneous ENVI wavelength vector with the metadata band center wavelengths
     wavelengths = np.asarray(vecCWL)
+    FWHMs = np.asarray(vecFWHM)
     envi_img.metadata['fwhm'] = vecFWHM
     envi_img.metadata['wavelength'] = vecCWL
     envi_img.metadata['acrossTrackOffNadirAngles'] = acrossTrackOffNadirAngles
@@ -252,9 +253,11 @@ def load_EnMAP_data_with_envi(folder_path, type=None, indices_x=None, indices_y=
     if type == 'vnir':
         datacube = datacube[:, :, vnir_channel_indices]
         wavelengths = wavelengths[vnir_channel_indices]
+        FWHMs = FWHMs[vnir_channel_indices]
     elif type == 'swir':
         datacube = datacube[:, :, swir_channel_indices]
         wavelengths = wavelengths[swir_channel_indices]
+        FWHMs = FWHMs[swir_channel_indices]
     # if type is something else, just return the whole combined cube
 
     if indices_y is not None:
@@ -266,7 +269,7 @@ def load_EnMAP_data_with_envi(folder_path, type=None, indices_x=None, indices_y=
     clip_value = 0.0
     datacube = np.clip(datacube, a_min=clip_value, a_max=1000) - clip_value
 
-    return envi_img, datacube, wavelengths
+    return envi_img, datacube, wavelengths, FWHMs
 
 
 def open_envi_image(hdr_path, cube_path, plot_one_channel=False):
