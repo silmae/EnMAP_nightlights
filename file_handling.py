@@ -48,7 +48,7 @@ def load_and_resample_solar_spectrum(path, wavelengths):
     return radiance
 
 
-def load_and_resample_Vlambda(path, wavelengths):
+def load_and_resample_Vlambda(path, wavelengths, plot=False):
     """Loading and resampling the spectral sensitivity of human photopic (daytime) vision: the V lambda curve."""
     data = load_csv(path)
     spectrum = data[:, 1].astype(float)
@@ -56,6 +56,13 @@ def load_and_resample_Vlambda(path, wavelengths):
     resample = spectral.BandResampler(orig_wavelengths, wavelengths)
     resampled_spectrum = resample(spectrum)
     resampled_spectrum = np.nan_to_num(resampled_spectrum, nan=0)  # Values missing in original spectrum will be NaNs
+
+    if plot:
+        plt.figure()
+        plt.plot(wavelengths[:55], resampled_spectrum[:55])
+        plt.xlabel('Wavelength [nm]')
+        plt.ylabel('$V_\lambda$')
+        plt.show()
 
     return resampled_spectrum
 

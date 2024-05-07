@@ -6,7 +6,7 @@ import numpy as np
 import utils as UT
 
 
-def plot_pixel_spectra(data, wavelengths, x_coords, y_coords, show_plot=False):
+def plot_pixel_spectra(data, wavelengths, x_coords, y_coords, show_plot=False, plot_separately=False):
 
     # If both x and y coordinates point to just one pixel, only plot that pixel
     if type(x_coords) == int and type(y_coords) == int:
@@ -15,6 +15,11 @@ def plot_pixel_spectra(data, wavelengths, x_coords, y_coords, show_plot=False):
         plt.plot(wavelengths, spectrum)
         plt.ylabel('Radiance [W / (m² sr nm)]')
         plt.xlabel('Wavelength [nm]')
+        # Plot vertical lines at some expected spike locations
+        plt.vlines(x=(1140, 2208), ymin=-0.0001, ymax=0.01, colors='r', linestyles=':')
+        plt.annotate(text='1140 nm', xy=(1120, 0.0101), color='r')
+        plt.annotate(text='2208 nm', xy=(2188, 0.0101), color='r')
+        plt.savefig('figs/spectrum.png')
         if show_plot:
             plt.show()
         plt.close(fig)
@@ -26,13 +31,29 @@ def plot_pixel_spectra(data, wavelengths, x_coords, y_coords, show_plot=False):
             spectra.append(data[i, j, :])
     mean_spectrum = np.mean(np.asarray(spectra), axis=0)
 
-    fig, axs = plt.subplots(1, 2)
-    for spectrum in spectra:
-        axs[0].plot(wavelengths, spectrum)
-    axs[0].set_title('individual pixel spectra')
+    if plot_separately:
+        fig = plt.figure()
+        plt.plot(wavelengths, mean_spectrum)
+        plt.ylabel('Radiance [W / (m² sr nm)]')
+        plt.xlabel('Wavelength [nm]')
 
-    axs[1].plot(wavelengths, mean_spectrum)
-    axs[1].set_title('mean spectrum')
+        plt.figure()
+        for spectrum in spectra:
+            plt.plot(wavelengths, spectrum)
+        plt.ylabel('Radiance [W / (m² sr nm)]')
+        plt.xlabel('Wavelength [nm]')
+        plt.savefig('figs/individual_spectral.png')
+
+        plt.show()
+
+    else:
+        fig, axs = plt.subplots(1, 2)
+        for spectrum in spectra:
+            axs[0].plot(wavelengths, spectrum)
+        axs[0].set_title('individual pixel spectra')
+
+        axs[1].plot(wavelengths, mean_spectrum)
+        axs[1].set_title('mean spectrum')
     if show_plot:
         plt.show()
     plt.close(fig)
@@ -67,8 +88,9 @@ def plot_rgb_reconstruction(data, wavelengths, RGB_center_wavelengths = (640, 54
 
     fig = plt.figure()
     plt.imshow(RGB_data)
-    plt.title('RGB reconstruction')
-    plt.savefig('./figs/RGB_reconstruction.png', dpi=600)
+    # plt.title('RGB reconstruction')
+    # plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    plt.savefig('./figs/RGB_reconstruction.png')
     if show_plot:
         plt.show()
     plt.close(fig)
@@ -84,9 +106,9 @@ def plot_integrated_radiance(data, show_plot=False, log_y=True):
         plt.imshow(plottable_sum, norm=matplotlib.colors.LogNorm())#, vmin=0, vmax=5)
     else:
         plt.imshow(plottable_sum)
-    plt.colorbar()
-    plt.title('Integrated radiance')
-    plt.savefig('./figs/integrated_radiance.png', dpi=600)
+    # plt.colorbar()
+    # plt.title('Integrated radiance')
+    plt.savefig('./figs/integrated_radiance.png')
     if show_plot:
         plt.show()
     plt.close(fig)

@@ -3,6 +3,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 plt.rcParams['image.cmap'] = 'viridis'
 plt.rcParams['figure.constrained_layout.use'] = True
+
+# PyPlot settings to be used in all plots
+plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'figure.autolayout': True})
+plt.rcParams.update({'savefig.dpi': 200})
+plt.rcParams.update({'savefig.bbox': 'tight'})
+# LaTeX font for all text in all figures
+plt.rcParams['mathtext.fontset'] = 'stix'
+plt.rcParams['font.family'] = 'STIXGeneral'
+
 import matplotlib
 import scipy
 from PIL import Image
@@ -54,13 +64,13 @@ if __name__ == '__main__':
     # axs[0].set_title('VNIR')
     # axs[1].imshow(np.mean(data_swir, axis=2))
     # axs[1].set_title('SWIR')
-    # plt.savefig('./figs/spot_comparison.png', dpi=300)
+    # plt.savefig('./figs/spot_comparison.png')
     # plt.show()
 
     # PT.animated_subplot(cube=data, wavelengths=wavelengths, title='Luxor Sky Beam on EnMAP')
 
     # Las Vegas
-    # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/LasVegas_2', type='both')
+    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
     # Riad
     # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Riad/dims_op_oc_oc-en_701066037_3')  # 2 and 3 are great! The rest not so much
     # Tokyo:
@@ -134,8 +144,14 @@ if __name__ == '__main__':
     # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Tokyo/dims_op_oc_oc-en_701066090_2')  # 1, 2, 3, 4, 5, (6) (7, 8, 9 show next to no lights)
 
     # Load target spectra: light sources
-    # targets = FH.load_spectral_library(wavelengths, MH=False, LED=True, HPS=False, LPS=False, MV=False, FL=False)
-    #
+    targets = FH.load_spectral_library(wavelengths, MH=False, LED=True, HPS=False, LPS=False, MV=False, FL=False)
+
+    # plt.figure()
+    # plt.plot(wavelengths[:60], targets[4]['spectrum'][:60])
+    # plt.xlabel('Wavelength [nm]')
+    # plt.ylabel('Intensity [arbitrary units]')
+    # plt.show()
+
     # # # # Generate targets: blackbody spectra with different temperatures
     # # targets = DG.generate_bb_spectra(temperature_min=3000, temperature_max=10000, temperature_spacing=500, wavelengths=wavelengths)
     # # sun_target = {'description': 'Sun irradiance',
@@ -147,12 +163,16 @@ if __name__ == '__main__':
     #
     # # Plot map highlighting sharp emission spikes at certain wavelengths
     # AN.plot_one_channel_spike_map(data, wavelengths, spike_wl1=2208, spike_wl2=1140, binary_map=True)  # 2208, 1140, 817
+    # Plot spectrum of an area that has both spikes
+    spectrum = PT.plot_pixel_spectra(data, wavelengths, y_coords=303, x_coords=232, show_plot=True)
 
     # # Plot spectra of certain area
-    # PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(215, 219))
+    # PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(215, 219), show_plot=True)
     # PT.plot_pixel_spectra(data, wavelengths, y_coords=(697, 699), x_coords=(608, 611))
     # # The Sphere
-    # PT.plot_pixel_spectra(data, wavelengths, y_coords=(269, 272), x_coords=(253, 257))
+    # PT.plot_pixel_spectra(data[:, :, :50], wavelengths[:50], y_coords=(269, 272), x_coords=(253, 257), show_plot=True)
+    # Smaller area of the sphere
+    PT.plot_pixel_spectra(data[:, :, :50], wavelengths[:50], y_coords=(270, 271), x_coords=(254, 256), show_plot=True, plot_separately=True)
 
 
     ########### Plots to show differences in spectra from different nights ###########
@@ -193,22 +213,24 @@ if __name__ == '__main__':
     # PT.plot_integrated_radiance(data, show_plot=True)
 
     plt.figure()
-    plt.plot(wavelengths, mean_luxor_1 , label=f'Across-track off-nadir angle {luxor_offnadir_angle1:.2f}')
-    plt.plot(wavelengths, mean_luxor_2 , label=f'Across-track off-nadir angle {luxor_offnadir_angle2:.2f}')
-    plt.plot(wavelengths, mean_luxor_3 , label=f'Across-track off-nadir angle {luxor_offnadir_angle3:.2f}')
-    plt.plot(wavelengths, mean_luxor_5 , label=f'Across-track off-nadir angle {luxor_offnadir_angle5:.2f}')
+    plt.plot(wavelengths, mean_luxor_1 , label=f'Off-nadir angle {luxor_offnadir_angle1:.2f}$^\circ$')
+    plt.plot(wavelengths, mean_luxor_2 , label=f'Off-nadir angle {luxor_offnadir_angle2:.2f}$^\circ$', linestyle='--')
+    plt.plot(wavelengths, mean_luxor_3 , label=f'Off-nadir angle {luxor_offnadir_angle3:.2f}$^\circ$', linestyle=':')
+    plt.plot(wavelengths, mean_luxor_5 , label=f'Off-nadir angle {luxor_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
     plt.ylabel('Radiance [W / (m² sr nm)]')
     plt.xlabel('Wavelength [nm]')
     plt.legend()
+    plt.savefig('figs/luxor_angle_dependence.png')
 
     plt.figure()
-    plt.plot(wavelengths, MGM_1, label=f'Across-track off-nadir angle {MGM_offnadir_angle1:.2f}')
-    plt.plot(wavelengths, MGM_2, label=f'Across-track off-nadir angle {MGM_offnadir_angle2:.2f}')
-    plt.plot(wavelengths, MGM_3, label=f'Across-track off-nadir angle {MGM_offnadir_angle3:.2f}')
-    plt.plot(wavelengths, MGM_5, label=f'Across-track off-nadir angle {MGM_offnadir_angle5:.2f}')
+    plt.plot(wavelengths[:50], MGM_1[:50], label=f'Off-nadir angle {MGM_offnadir_angle1:.2f}$^\circ$')
+    plt.plot(wavelengths[:50], MGM_2[:50], label=f'Off-nadir angle {MGM_offnadir_angle2:.2f}$^\circ$', linestyle='--')
+    plt.plot(wavelengths[:50], MGM_3[:50], label=f'Off-nadir angle {MGM_offnadir_angle3:.2f}$^\circ$', linestyle=':')
+    plt.plot(wavelengths[:50], MGM_5[:50], label=f'Off-nadir angle {MGM_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
     plt.ylabel('Radiance [W / (m² sr nm)]')
     plt.xlabel('Wavelength [nm]')
     plt.legend()
+    plt.savefig('figs/MGM_angle_dependence.png')
 
     plt.show()
 
@@ -255,7 +277,7 @@ if __name__ == '__main__':
     # plt.figure()
     # plt.imshow(RGB ** (1/2))
     # plt.title('R, G, and B filter activations')
-    # plt.savefig(f'./figs/RGB_LED.png', dpi=600)
+    # plt.savefig(f'./figs/RGB_LED.png')
     # plt.show()
 
 
