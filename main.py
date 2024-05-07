@@ -18,6 +18,7 @@ import scipy
 from PIL import Image
 import cv2
 import skimage
+import spectral
 
 import file_handling as FH
 import data_generation as DG
@@ -70,18 +71,18 @@ if __name__ == '__main__':
     # PT.animated_subplot(cube=data, wavelengths=wavelengths, title='Luxor Sky Beam on EnMAP')
 
     # Las Vegas
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
+    envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
     # Riad
-    # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Riad/dims_op_oc_oc-en_701066037_3')  # 2 and 3 are great! The rest not so much
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Riad/dims_op_oc_oc-en_701066037_3')  # 2 and 3 are great! The rest not so much
     # Tokyo:
-    # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Tokyo/dims_op_oc_oc-en_701066090_1')  # 1, 2, 3, 4, 5, (6) (7, 8, 9 show next to no lights)
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_other_cities/Tokyo/dims_op_oc_oc-en_701066090_1')  # 1, 2, 3, 4, 5, (6) (7, 8, 9 show next to no lights)
     # Las Vegas daytime image
-    # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C/dims_op_oc_oc-en_701052184_3',
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C/dims_op_oc_oc-en_701052184_3',
     #                                                            indices_y=(800, 1100), indices_x=(500, 700))
 
     # # # Cropped images from Tokyo
-    # envi_img, data1, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/tokyo/Tokyo_4')
-    # envi_img, data2, wavelengths = FH.load_EnMAP_data_with_envi(
+    # envi_img, data1, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/tokyo/Tokyo_4')
+    # envi_img, data2, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi(
     #     './data/EnMAP/L1C_cropped_co-registered/tokyo/Tokyo_6')
     #
     # data1 = (np.mean(data1, axis=2) ** 0.5) * 100
@@ -146,6 +147,25 @@ if __name__ == '__main__':
     # Load target spectra: light sources
     targets = FH.load_spectral_library(wavelengths, MH=False, LED=True, HPS=False, LPS=False, MV=False, FL=False)
 
+    # Resample the image cube and target signals to RGB
+    RGB_wavelengths = [450, 550, 650]
+    RGB_FWHMs = [50, 50, 50]
+
+    resample = spectral.BandResampler(wavelengths, RGB_wavelengths, FWHMs, RGB_FWHMs)
+
+    data_resampled = np.zeros(shape=(data.shape[0], data.shape[1], 3))
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            data_resampled[i, j, :] = resample(data[i, j, :])
+    data = data_resampled
+
+    targets_resampled = np.copy(targets)
+    for i, target in enumerate(targets):
+        spectrum = resample(target['spectrum'])
+        targets_resampled[i]['spectrum'] = spectrum
+    targets = targets_resampled
+    print('')
+
     # plt.figure()
     # plt.plot(wavelengths[:60], targets[4]['spectrum'][:60])
     # plt.xlabel('Wavelength [nm]')
@@ -158,13 +178,13 @@ if __name__ == '__main__':
     # #                'spectrum': FH.load_and_resample_solar_spectrum('./data/hybrid_reference_spectrum_1nm_resolution_c2022-11-30_with_unc.nc', wavelengths)}
     # # targets.append(sun_target)
     #
-    # # Run matched filters on the data
-    # filtered_images = AN.run_matched_filtering(data, targets, show_plots=False, save_tiff=False)
+    # Run matched filters on the data
+    filtered_images = AN.run_matched_filtering(data, targets, show_plots=True, save_tiff=False)
     #
     # # Plot map highlighting sharp emission spikes at certain wavelengths
     # AN.plot_one_channel_spike_map(data, wavelengths, spike_wl1=2208, spike_wl2=1140, binary_map=True)  # 2208, 1140, 817
     # Plot spectrum of an area that has both spikes
-    spectrum = PT.plot_pixel_spectra(data, wavelengths, y_coords=303, x_coords=232, show_plot=True)
+    # spectrum = PT.plot_pixel_spectra(data, wavelengths, y_coords=303, x_coords=232, show_plot=True)
 
     # # Plot spectra of certain area
     # PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(215, 219), show_plot=True)
@@ -172,67 +192,67 @@ if __name__ == '__main__':
     # # The Sphere
     # PT.plot_pixel_spectra(data[:, :, :50], wavelengths[:50], y_coords=(269, 272), x_coords=(253, 257), show_plot=True)
     # Smaller area of the sphere
-    PT.plot_pixel_spectra(data[:, :, :50], wavelengths[:50], y_coords=(270, 271), x_coords=(254, 256), show_plot=True, plot_separately=True)
+    # PT.plot_pixel_spectra(data[:, :, :50], wavelengths[:50], y_coords=(270, 271), x_coords=(254, 256), show_plot=True, plot_separately=True)
 
 
     ########### Plots to show differences in spectra from different nights ###########
 
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
-    mean_luxor_5 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(365, 367), x_coords=(215, 217))
-    MGM_5 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_5')
-    luxor_offnadir_angle5 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[738, 534])
-    MGM_offnadir_angle5 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[715, 553])
-    # PT.plot_integrated_radiance(data, show_plot=True)
-
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi(
-        'data/EnMAP/L1C_cropped_co-registered/LasVegas_1', type='both')
-    mean_luxor_1 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(216, 218))
-    MGM_1 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_1')
-    luxor_offnadir_angle1 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[698, 610])
-    MGM_offnadir_angle1 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[675, 628])
-    # PT.plot_integrated_radiance(data, show_plot=True)
-
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi(
-        'data/EnMAP/L1C_cropped_co-registered/LasVegas_2', type='both')
-    mean_luxor_2 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(365, 367), x_coords=(215, 217))
-    MGM_2 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_2')
-    luxor_offnadir_angle2 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[920, 556])
-    MGM_offnadir_angle2 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[897, 574])
-    # PT.plot_integrated_radiance(data, show_plot=True)
-
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi(
-        'data/EnMAP/L1C_cropped_co-registered/LasVegas_3', type='both')
-    mean_luxor_3 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(215, 217))
-    MGM_3 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(343, 345), x_coords=(233, 236))
-    envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_3')
-    luxor_offnadir_angle3 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[905, 549])
-    MGM_offnadir_angle3 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[883, 567])
-    # PT.plot_integrated_radiance(data, show_plot=True)
-
-    plt.figure()
-    plt.plot(wavelengths, mean_luxor_1 , label=f'Off-nadir angle {luxor_offnadir_angle1:.2f}$^\circ$')
-    plt.plot(wavelengths, mean_luxor_2 , label=f'Off-nadir angle {luxor_offnadir_angle2:.2f}$^\circ$', linestyle='--')
-    plt.plot(wavelengths, mean_luxor_3 , label=f'Off-nadir angle {luxor_offnadir_angle3:.2f}$^\circ$', linestyle=':')
-    plt.plot(wavelengths, mean_luxor_5 , label=f'Off-nadir angle {luxor_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
-    plt.ylabel('Radiance [W / (m² sr nm)]')
-    plt.xlabel('Wavelength [nm]')
-    plt.legend()
-    plt.savefig('figs/luxor_angle_dependence.png')
-
-    plt.figure()
-    plt.plot(wavelengths[:50], MGM_1[:50], label=f'Off-nadir angle {MGM_offnadir_angle1:.2f}$^\circ$')
-    plt.plot(wavelengths[:50], MGM_2[:50], label=f'Off-nadir angle {MGM_offnadir_angle2:.2f}$^\circ$', linestyle='--')
-    plt.plot(wavelengths[:50], MGM_3[:50], label=f'Off-nadir angle {MGM_offnadir_angle3:.2f}$^\circ$', linestyle=':')
-    plt.plot(wavelengths[:50], MGM_5[:50], label=f'Off-nadir angle {MGM_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
-    plt.ylabel('Radiance [W / (m² sr nm)]')
-    plt.xlabel('Wavelength [nm]')
-    plt.legend()
-    plt.savefig('figs/MGM_angle_dependence.png')
-
-    plt.show()
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
+    # mean_luxor_5 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(365, 367), x_coords=(215, 217))
+    # MGM_5 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_5')
+    # luxor_offnadir_angle5 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[738, 534])
+    # MGM_offnadir_angle5 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[715, 553])
+    # # PT.plot_integrated_radiance(data, show_plot=True)
+    #
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi(
+    #     'data/EnMAP/L1C_cropped_co-registered/LasVegas_1', type='both')
+    # mean_luxor_1 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(216, 218))
+    # MGM_1 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_1')
+    # luxor_offnadir_angle1 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[698, 610])
+    # MGM_offnadir_angle1 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[675, 628])
+    # # PT.plot_integrated_radiance(data, show_plot=True)
+    #
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi(
+    #     'data/EnMAP/L1C_cropped_co-registered/LasVegas_2', type='both')
+    # mean_luxor_2 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(365, 367), x_coords=(215, 217))
+    # MGM_2 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(342, 344), x_coords=(233, 236))
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_2')
+    # luxor_offnadir_angle2 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[920, 556])
+    # MGM_offnadir_angle2 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[897, 574])
+    # # PT.plot_integrated_radiance(data, show_plot=True)
+    #
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi(
+    #     'data/EnMAP/L1C_cropped_co-registered/LasVegas_3', type='both')
+    # mean_luxor_3 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 368), x_coords=(215, 217))
+    # MGM_3 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(343, 345), x_coords=(233, 236))
+    # envi_img, data, wavelengths, FWHMs = FH.load_EnMAP_data_with_envi('data/EnMAP/L1C/dims_op_oc_oc-en_701045151_3')
+    # luxor_offnadir_angle3 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[905, 549])
+    # MGM_offnadir_angle3 = UT.interpolate_offNadir_angle(data, envi_img, coordinates=[883, 567])
+    # # PT.plot_integrated_radiance(data, show_plot=True)
+    #
+    # plt.figure()
+    # plt.plot(wavelengths, mean_luxor_1 , label=f'Off-nadir angle {luxor_offnadir_angle1:.2f}$^\circ$')
+    # plt.plot(wavelengths, mean_luxor_2 , label=f'Off-nadir angle {luxor_offnadir_angle2:.2f}$^\circ$', linestyle='--')
+    # plt.plot(wavelengths, mean_luxor_3 , label=f'Off-nadir angle {luxor_offnadir_angle3:.2f}$^\circ$', linestyle=':')
+    # plt.plot(wavelengths, mean_luxor_5 , label=f'Off-nadir angle {luxor_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
+    # plt.ylabel('Radiance [W / (m² sr nm)]')
+    # plt.xlabel('Wavelength [nm]')
+    # plt.legend()
+    # plt.savefig('figs/luxor_angle_dependence.png')
+    #
+    # plt.figure()
+    # plt.plot(wavelengths[:50], MGM_1[:50], label=f'Off-nadir angle {MGM_offnadir_angle1:.2f}$^\circ$')
+    # plt.plot(wavelengths[:50], MGM_2[:50], label=f'Off-nadir angle {MGM_offnadir_angle2:.2f}$^\circ$', linestyle='--')
+    # plt.plot(wavelengths[:50], MGM_3[:50], label=f'Off-nadir angle {MGM_offnadir_angle3:.2f}$^\circ$', linestyle=':')
+    # plt.plot(wavelengths[:50], MGM_5[:50], label=f'Off-nadir angle {MGM_offnadir_angle5:.2f}$^\circ$', linestyle='-.')
+    # plt.ylabel('Radiance [W / (m² sr nm)]')
+    # plt.xlabel('Wavelength [nm]')
+    # plt.legend()
+    # plt.savefig('figs/MGM_angle_dependence.png')
+    #
+    # plt.show()
 
     # envi_img, data, wavelengths = FH.load_EnMAP_data_with_envi('./data/EnMAP/L1C_cropped_co-registered/LasVegas_5', type='both')
     # mean_luxor_5 = PT.plot_pixel_spectra(data, wavelengths, y_coords=(366, 367), x_coords=(216, 217), show_plot=True)
